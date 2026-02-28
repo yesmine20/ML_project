@@ -41,9 +41,11 @@ projet_ml_retail/
 ├── README.md
 └── .gitignore
 ⚙️ Installation
+
 1️⃣ Cloner le projet
 git clone <votre_lien_github>
 cd projet_ml_retail
+
 2️⃣ Créer l’environnement virtuel
 python -m venv venv
 Activation :
@@ -55,6 +57,7 @@ venv\Scripts\activate
 Linux / Mac
 
 source venv/bin/activate
+
 3️⃣ Installer les dépendances
 pip install -r requirements.txt
 📊 Pipeline Machine Learning
