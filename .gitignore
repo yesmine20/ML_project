@@ -419,3 +419,21 @@ FodyWeavers.xsd
 
 venv
 .venv
+venv/
+
+# Données (trop lourdes pour GitHub)
+data/raw/
+data/processed/
+
+# Modèles sauvegardés
+models/
+
+# Fichiers Python compilés
+__pycache__/
+*.pyc
+
+# VS Code
+.vscode/
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
