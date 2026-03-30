@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retail Churn Predictor</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+        :root {
+            /* --bg: #0f1117;
+            --surface: #1a1d27;
+            --surface2: #222638; */
+            --border: #2e3248;
+            --accent: #4f8ef7;
+            --danger: #e24b4a;
+            --success: #3aad6e;
+            --warning: #e89b2f;
+            --text: #253c97;
+            --muted: #7880a0;
+            --mono: 'IBM Plex Mono', monospace;
+            --sans: 'IBM Plex Sans', sans-serif;
+        }
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            /* background: var(--bg); */
+            color: var(--text);
+            font-family: var(--sans);
+            font-size: 14px;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        header {
+            border-bottom: 1px solid var(--border);
+            padding: 16px 40px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--surface);
+        }
+
+        .dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 8px var(--accent);
+        }
+
+        header h1 {
+            font-family: var(--mono);
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: .05em;
+        }
+
+        .badge {
+            font-family: var(--mono);
+            font-size: 11px;
+            color: var(--muted);
+            margin-left: auto;
+            border: 1px solid var(--border);
+            padding: 3px 10px;
+            border-radius: 4px;
+        }
+
+        .container {
+            max-width: 1060px;
+            margin: 0 auto;
+            padding: 32px 20px;
+            display: grid;
+            grid-template-columns: 1fr 360px;
+            gap: 22px;
+            align-items: start;
+        }
+
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 26px;
+        }
+
+        .panel-title {
+            font-family: var(--mono);
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--muted);
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .panel-title::before {
+            content: '';
+            display: inline-block;
+            width: 3px;
+            height: 13px;
+            background: var(--accent);
+            border-radius: 2px;
+        }
+
+        /* ── Form ── */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .form-group.full {
+            grid-column: span 2;
+        }
+
+        label {
+            font-size: 12px;
+            color: var(--muted);
+            font-family: var(--mono);
+        }
+
+        input[type=number],
+        select {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text);
+            font-family: var(--mono);
+            font-size: 14px;
+            padding: 9px 12px;
+            outline: none;
+            transition: border-color .2s;
+            width: 100%;
+        }
+
+        input[type=number]:focus,
+        select:focus {
+            border-color: var(--accent);
+        }
+
+        select option {
+            background: var(--surface2);
+        }
+
+        .hint {
+            font-size: 10px;
+            color: var(--muted);
+            opacity: .65;
+        }
+
+        /* Recency slider */
+        .slider-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        input[type=range] {
+            flex: 1;
+            accent-color: var(--accent);
+        }
+
+        .slider-val {
+            font-family: var(--mono);
+            font-size: 13px;
+            min-width: 38px;
+            text-align: right;
+        }
+
+        /* Info banner */
+        .info-banner {
+            background: rgba(79, 142, 247, .08);
+            border: 1px solid rgba(79, 142, 247, .2);
+            border-radius: 7px;
+            padding: 10px 14px;
+            margin-bottom: 18px;
+            font-size: 12px;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
+        .info-banner strong {
+            color: var(--accent);
+        }
+
+        .btn {
+            margin-top: 20px;
+            width: 100%;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            font-family: var(--mono);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity .2s;
+        }
+
+        .btn:hover {
+            opacity: .88;
+        }
+
+        .btn:disabled {
+            opacity: .4;
+            cursor: not-allowed;
+        }
+
+        /* ── Results ── */
+        #placeholder {
+            color: var(--muted);
+            font-size: 13px;
+            padding: 30px 0;
+            text-align: center;
+            line-height: 2;
+        }
+
+        #result-panel {
+            display: none;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        #result-panel.visible {
+            display: flex;
+        }
+
+        .gauge-wrap {
+            text-align: center;
+            padding: 16px 0 8px;
+        }
+
+        .gauge-label {
+            font-family: var(--mono);
+            font-size: 10px;
+            color: var(--muted);
+            letter-spacing: .12em;
+            margin-bottom: 10px;
+        }
+
+        .gauge-value {
+            font-family: var(--mono);
+            font-size: 46px;
+            font-weight: 600;
+            transition: color .4s;
+        }
+
+        .bar-bg {
+            height: 7px;
+            background: var(--surface2);
+            border-radius: 4px;
+            margin: 12px 0 6px;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width .6s ease, background .4s;
+        }
+
+        .verdict {
+            font-size: 12px;
+            font-weight: 500;
+            padding: 5px 14px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-top: 4px;
+            font-family: var(--mono);
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .mc {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 14px;
+        }
+
+        .mc-label {
+            font-size: 10px;
+            color: var(--muted);
+            font-family: var(--mono);
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .mc-value {
+            font-family: var(--mono);
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .r-faible {
+            background: rgba(58, 173, 110, .15);
+            color: #3aad6e;
+        }
+
+        .r-moyen {
+            background: rgba(232, 155, 47, .15);
+            color: #e89b2f;
+        }
+
+        .r-eleve {
+            background: rgba(226, 75, 74, .15);
+            color: #e24b4a;
+        }
+
+        .r-critique {
+            background: rgba(226, 75, 74, .25);
+            color: #ff6b6a;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 13px;
+            height: 13px;
+            border: 2px solid rgba(255, 255, 255, .3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin .7s linear infinite;
+            vertical-align: middle;
+            margin-right: 6px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .err {
+            background: rgba(226, 75, 74, .1);
+            border: 1px solid rgba(226, 75, 74, .3);
+            color: var(--danger);
+            border-radius: 6px;
+            padding: 10px 14px;
+            font-size: 12px;
+            display: none;
+            margin-top: 10px;
+        }
+
+        .err.visible {
+            display: block;
+        }
+
+        footer {
+            text-align: center;
+            padding: 24px;
+            font-size: 11px;
+            color: var(--muted);
+            font-family: var(--mono);
+            border-top: 1px solid var(--border);
+            margin-top: 16px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="dot"></div>
+        <h1>Retail Churn Predictor</h1>
+        <span class="badge">GI2 — ML 2025-2026</span>
+    </header>
+
+    <div class="container">
+
+        <!-- Formulaire -->
+        <div class="panel">
+            <div class="panel-title">Profil client</div>
+
+            <div class="info-banner">
+                <strong>8 champs suffisent</strong> — ils représentent ~56% de l'importance du modèle.
+                Les 44 autres features sont complétées automatiquement par les médianes du dataset d'entraînement.
+            </div>
+
+            <div class="form-grid">
+
+                <div class="form-group">
+                    <label>Frequency — Nb commandes</label>
+                    <input type="number" id="Frequency" value="3" min="1" max="100">
+                    <span class="hint">Commandes distinctes passées</span>
+                </div>
+
+                <div class="form-group">
+                    <label>MonetaryTotal (£)</label>
+                    <input type="number" id="MonetaryTotal" value="500" min="0" step="10">
+                    <span class="hint">Dépense totale cumulée</span>
+                </div>
+
+                <div class="form-group">
+                    <label>AvgDaysBetweenPurchases</label>
+                    <input type="number" id="AvgDaysBetweenPurchases" value="30" min="0">
+                    <span class="hint">Délai moyen entre commandes (jours)</span>
+                </div>
+
+                <div class="form-group">
+                    <label>UniqueProducts</label>
+                    <input type="number" id="UniqueProducts" value="5" min="1">
+                    <span class="hint">Nombre de produits distincts achetés</span>
+                </div>
+
+                <div class="form-group">
+                    <label>PreferredMonth — Mois favori</label>
+                    <select id="PreferredMonth">
+                        <option value="1">Janvier</option>
+                        <option value="2">Février</option>
+                        <option value="3">Mars</option>
+                        <option value="4">Avril</option>
+                        <option value="5">Mai</option>
+                        <option value="6" selected>Juin</option>
+                        <option value="7">Juillet</option>
+                        <option value="8">Août</option>
+                        <option value="9">Septembre</option>
+                        <option value="10">Octobre</option>
+                        <option value="11">Novembre</option>
+                        <option value="12">Décembre</option>
+                    </select>
+                    <span class="hint">Mois avec le plus d'achats</span>
+                </div>
+
+                <div class="form-group">
+                    <label>SpendingCategory</label>
+                    <select id="SpendingCategory">
+                        <option value="Low">Low</option>
+                        <option value="Medium" selected>Medium</option>
+                        <option value="High">High</option>
+                        <option value="VIP">VIP</option>
+                    </select>
+                    <span class="hint">Niveau de dépense global</span>
+                </div>
+
+                <div class="form-group">
+                    <label>FavoriteSeason — Saison favorite</label>
+                    <select id="FavoriteSeason">
+                        <option value="Printemps">Printemps</option>
+                        <option value="Été">Été</option>
+                        <option value="Automne" selected>Automne</option>
+                        <option value="Hiver">Hiver</option>
+                    </select>
+                    <span class="hint">Saison avec le plus d'achats</span>
+                </div>
+
+                <div class="form-group">
+                    <label>RegYear — Année d'inscription</label>
+                    <input type="number" id="RegYear" value="2012" min="2009" max="2025">
+                    <span class="hint">Ancienneté du compte client</span>
+                </div>
+
+                <!-- Recency pour RFM uniquement (pas dans le modèle churn) -->
+                <div class="form-group full">
+                    <label>Recency — Jours depuis dernier achat <span style="color:var(--accent)">(pour segment RFM
+                            uniquement)</span></label>
+                    <div class="slider-row">
+                        <input type="range" id="Recency" min="0" max="400" value="50"
+                            oninput="document.getElementById('recency-val').textContent=this.value+' j'">
+                        <span class="slider-val" id="recency-val">50 j</span>
+                    </div>
+                    <span class="hint">Non utilisé pour la prédiction churn — utilisé pour le segment RFM</span>
+                </div>
+
+            </div>
+
+            <button class="btn" id="btn-predict" onclick="runPrediction()">
+                Prédire le Churn
+            </button>
+            <div class="err" id="err"></div>
+        </div>
+
+        <!-- Résultats -->
+        <div class="panel">
+            <div class="panel-title">Résultats</div>
+
+            <div id="placeholder">
+                Remplissez le profil client<br>et cliquez sur<br>
+                <strong style="color:var(--accent)">Prédire le Churn</strong>
+            </div>
+
+            <div id="result-panel">
+                <div class="gauge-wrap">
+                    <div class="gauge-label">PROBABILITÉ DE CHURN</div>
+                    <div class="gauge-value" id="g-val">—</div>
+                    <div class="bar-bg">
+                        <div class="bar-fill" id="g-fill" style="width:0%"></div>
+                    </div>
+                    <div class="verdict" id="g-verdict">—</div>
+                </div>
+
+                <div class="metrics">
+                    <div class="mc">
+                        <div class="mc-label">Décision</div>
+                        <div class="mc-value" id="r-decision">—</div>
+                    </div>
+                    <div class="mc">
+                        <div class="mc-label">Niveau de risque</div>
+                        <div class="mc-value" id="r-risk">—</div>
+                    </div>
+                    <div class="mc">
+                        <div class="mc-label">Segment RFM</div>
+                        <div class="mc-value" id="r-rfm" style="font-size:12px">—</div>
+                    </div>
+                    <div class="mc">
+                        <div class="mc-label">Features utilisées</div>
+                        <div class="mc-value" id="r-features">8 / 52</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <footer>Random Forest · Sans ACP (modèle final) · SMOTE · K-Means RFM — GI2 ML Project 2025-2026</footer>
+
+    <script>
+        async function runPrediction() {
+            const btn = document.getElementById('btn-predict');
+            const err = document.getElementById('err');
+            err.classList.remove('visible');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span>Calcul...';
+
+            const payload = {
+                Frequency: parseFloat(document.getElementById('Frequency').value),
+                MonetaryTotal: parseFloat(document.getElementById('MonetaryTotal').value),
+                AvgDaysBetweenPurchases: parseFloat(document.getElementById('AvgDaysBetweenPurchases').value),
+                UniqueProducts: parseFloat(document.getElementById('UniqueProducts').value),
+                PreferredMonth: parseInt(document.getElementById('PreferredMonth').value),
+                SpendingCategory: document.getElementById('SpendingCategory').value,
+                FavoriteSeason: document.getElementById('FavoriteSeason').value,
+                RegYear: parseInt(document.getElementById('RegYear').value),
+                Recency: parseFloat(document.getElementById('Recency').value),
+            };
+
+            try {
+                const resp = await fetch('/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await resp.json();
+                if (!data.success) throw new Error(data.error);
+
+                document.getElementById('placeholder').style.display = 'none';
+                document.getElementById('result-panel').classList.add('visible');
+
+                const prob = data.churn_probability;
+                document.getElementById('g-val').textContent = prob.toFixed(1) + '%';
+
+                let color;
+                if (prob >= 75) color = '#ff6b6a';
+                else if (prob >= 50) color = '#e24b4a';
+                else if (prob >= 25) color = '#e89b2f';
+                else color = '#3aad6e';
+
+                document.getElementById('g-val').style.color = color;
+                document.getElementById('g-fill').style.width = prob + '%';
+                document.getElementById('g-fill').style.background = color;
+
+                const riskKey = data.risk_segment.toLowerCase()
+                    .replace('é', 'e').replace('è', 'e').replace('ê', 'e');
+                const verdict = document.getElementById('g-verdict');
+                verdict.textContent = data.risk_segment;
+                verdict.className = 'verdict r-' + riskKey;
+
+                const dec = document.getElementById('r-decision');
+                dec.textContent = data.churn_predicted === 1 ? 'Churné' : 'Fidèle';
+                dec.style.color = data.churn_predicted === 1 ? '#e24b4a' : '#3aad6e';
+
+                document.getElementById('r-risk').textContent = data.risk_segment;
+                document.getElementById('r-rfm').textContent = data.rfm_segment;
+
+            } catch (e) {
+                err.textContent = 'Erreur : ' + e.message;
+                err.classList.add('visible');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Prédire le Churn';
+            }
+        }
+    </script>
+</body>
+
+</html>

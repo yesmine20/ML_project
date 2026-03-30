@@ -1,7 +1,5 @@
 import pandas as pd
 import numpy as np
-from sklearn.preprocessing import StandardScaler
-import joblib
 import os
 import sys
 sys.path.append(r'C:\Users\abdal\Desktop\projects\ML\ML_project\src')
@@ -10,9 +8,7 @@ sys.path.append(r'C:\Users\abdal\Desktop\projects\ML\ML_project\src')
 from utils import (
     analyser_uniques,       # détecte les colonnes inutiles
     analyser_redondantes,   # détecte les colonnes redondantes
-    analyser_manquants,     # détecte les valeurs manquantes
-    analyser_aberrantes,    # détecte les valeurs aberrantes
-    analyser_echelles       # détecte les colonnes à normaliser
+    # analyser_manquants,     # détecte les valeurs manquantes
 )
 
 # ============================================================
@@ -38,6 +34,14 @@ def supprimer_colonnes_inutiles(df):
         if col in df.columns:
             df = df.drop(columns=[col])
             print(f" {col} supprimée")
+    features_leakage = [
+      'ChurnRiskCategory',   # ❌ leakage confirmé
+      'CustomerType',
+      'AccountStatus',
+      'RFMSegment'
+]
+    df = df.drop(columns=[c for c in features_leakage if c in df.columns])
+
 
     return df
 
@@ -52,14 +56,14 @@ def supprimer_redondantes(df):
     """
     print("\n SUPPRESSION DES COLONNES REDONDANTES")
 
-    # utils.py détecte automatiquement les colonnes corrélées > 0.85
+    # utils.py détecte automatiquement les colonnes corrélées > 0.8
     colonnes_redondantes = analyser_redondantes(df, seuil=0.8)
 
     # preprocessing.py supprime
     for col in colonnes_redondantes:
         if col in df.columns:
             df = df.drop(columns=[col])
-            print(f"✅ {col} supprimée")
+            print(f" {col} supprimée")
 
     print(f"Shape après suppression : {df.shape}")
     return df
@@ -70,108 +74,115 @@ def supprimer_redondantes(df):
 # ============================================================
 def corriger_aberrantes(df):
     """
-    Utilise utils.py pour détecter les aberrantes
-    puis les corrige selon les règles métier
+    Utilise utils.analyser_aberrantes() pour détecter
+    puis corrige selon les règles métier du PDF page 4
     """
     print("\n  CORRECTION DES VALEURS ABERRANTES")
+    print("    → NaN sera imputé dans train_model.py après le split")
 
-    # utils.py détecte (affiche les stats et boxplots)
-    # On sait grâce à analyser_aberrantes() que :
-    # SatisfactionScore valide = 1 à 5
-    # SupportTicketsCount valide = 0 à 15
-
-    # preprocessing.py corrige
+    # preprocessing.py corrige selon règles métier
+    # SatisfactionScore : valides = 1 à 5 (-1, 0, 99 = aberrants)
     nb = df[~df['SatisfactionScore'].between(1, 5)].shape[0]
     df.loc[~df['SatisfactionScore'].between(1, 5), 'SatisfactionScore'] = np.nan
     print(f" SatisfactionScore : {nb} aberrantes → NaN")
 
+    # SupportTicketsCount : valides = 0 à 15 (-1, 999 = aberrants)
     nb = df[~df['SupportTicketsCount'].between(0, 15)].shape[0]
     df.loc[~df['SupportTicketsCount'].between(0, 15), 'SupportTicketsCount'] = np.nan
     print(f" SupportTicketsCount : {nb} aberrantes → NaN")
 
     return df
 
-
 # ============================================================
-# FONCTION 4 : Imputer les valeurs manquantes
+# FONCTION 4 : Feature Engineering (PDF page 6)
 # ============================================================
-def imputer_manquants(df):
+def feature_engineering(df):
     """
-    Utilise utils.py pour détecter les colonnes avec NaN
-    puis les impute avec la médiane
+    Création de nouvelles features (PDF page 6)
+    + Parsing RegistrationDate (PDF page 7)
+    + Extraction LastLoginIP (PDF page 7)
     """
-    print("\n IMPUTATION DES VALEURS MANQUANTES")
+    print("\n FEATURE ENGINEERING")
 
-    # utils.py détecte automatiquement les colonnes avec NaN
-    colonnes_manquantes = analyser_manquants(df)
+    # ── Nouvelles features (PDF page 6) ──
+    df['MonetaryPerDay'] = df['MonetaryTotal'] / (df['Recency'] + 1)
+    print(" MonetaryPerDay = MonetaryTotal / (Recency + 1)")
 
-    # preprocessing.py impute avec la médiane
-    for col in colonnes_manquantes:
-        if col in df.columns:
-            nb = df[col].isnull().sum()
-            mediane = df[col].median()
-            df[col] = df[col].fillna(mediane)
-            print(f" {col} : {nb} NaN → médiane ({mediane:.2f})")
+    df['AvgBasketValue'] = df['MonetaryTotal'] / df['Frequency']
+    print(" AvgBasketValue = MonetaryTotal / Frequency")
 
-    return df
+    # PDF utilise CustomerTenure → notre CSV = CustomerTenureDays
+    df['TenureRatio'] = df['Recency'] / (df['CustomerTenureDays'] + 1)
+    print(" TenureRatio = Recency / CustomerTenureDays")
 
-
-# ============================================================
-# FONCTION 5 : Parser les dates
-# ============================================================
-def parser_dates(df):
-    """Extrait les informations utiles de RegistrationDate"""
-    print("\n PARSING DES DATES")
-
+    # ── Parsing RegistrationDate  ──
     if 'RegistrationDate' in df.columns:
         df['RegistrationDate'] = pd.to_datetime(
             df['RegistrationDate'],
-            dayfirst=True,
-            errors='coerce'
+            dayfirst=True,   # priorité format UK
+            errors='coerce'  # NaT si format inconnu
         )
         df['RegYear']    = df['RegistrationDate'].dt.year
         df['RegMonth']   = df['RegistrationDate'].dt.month
         df['RegDay']     = df['RegistrationDate'].dt.day
         df['RegWeekday'] = df['RegistrationDate'].dt.weekday
-
         df = df.drop(columns=['RegistrationDate'])
         print(" RegistrationDate → RegYear, RegMonth, RegDay, RegWeekday")
 
-    return df
-
-
-# ============================================================
-# FONCTION 6 : Traiter LastLoginIP
-# ============================================================
-def traiter_ip(df):
-    """Extrait le premier octet de l'adresse IP"""
-    print("\n TRAITEMENT DES ADRESSES IP")
-
+    # ── Extraction LastLoginIP ──
     if 'LastLoginIP' in df.columns:
+        # Premier octet → indice géographique
         df['IP_PremierOctet'] = df['LastLoginIP'].apply(
             lambda x: int(str(x).split('.')[0]) if pd.notna(x) else 0
         )
+        # IP privée vs publique (PDF : détecter si IP privée/publique)
+        df['IP_Privee'] = df['LastLoginIP'].apply(
+            lambda x: 1 if str(x).startswith(('10.', '192.168.', '172.'))
+            else 0 if pd.notna(x) else 0
+        )
         df = df.drop(columns=['LastLoginIP'])
-        print(" LastLoginIP → IP_PremierOctet")
+        print(" LastLoginIP → IP_PremierOctet, IP_Privee")
 
+    print(f"Shape après feature engineering : {df.shape}")
     return df
-
 
 # ============================================================
 # FONCTION 7 : Encoder les colonnes texte
 # ============================================================
 def encoder_colonnes(df):
-    """Encode les colonnes texte en chiffres"""
+    """
+    Encodage des colonnes texte (PDF pages 3-4)
+    - Ordinal  : quand il y a un ordre logique
+    - One-Hot  : quand il n'y a pas d'ordre
+    - Country  : Target Encoding → train_model.py après split
+    """
     print("\n ENCODAGE DES COLONNES TEXTE")
 
-    # Encodage Ordinal (ordre logique)
+    # ── Encodage Ordinal  ──
     encodages_ordinaux = {
+        # ordre : Low < Medium < High < VIP
         'SpendingCategory'  : ['Low', 'Medium', 'High', 'VIP'],
+        
+        # ordre : Nouveau < Jeune < Établi < Ancien (Inconnu = -1)
         'LoyaltyLevel'      : ['Nouveau', 'Jeune', 'Établi', 'Ancien', 'Inconnu'],
+        
+        # ordre : Faible < Moyen < Élevé < Critique
         'ChurnRiskCategory' : ['Faible', 'Moyen', 'Élevé', 'Critique'],
+        
+        # ordre : Petit < Moyen < Grand (Inconnu = -1)
         'BasketSizeCategory': ['Petit', 'Moyen', 'Grand', 'Inconnu'],
-        'AgeCategory'       : ['18-24', '25-34', '35-44', '45-54', '55-64', '65+', 'Inconnu'],
+        
+        # ordre chronologique des tranches d'âge
+        'AgeCategory'       : ['18-24', '25-34', '35-44', '45-54',
+                               '55-64', '65+', 'Inconnu'],
+        
+        # ordre chronologique de la journée
         'PreferredTimeOfDay': ['Matin', 'Midi', 'Après-midi', 'Soir', 'Nuit'],
+        
+        # ordre valeur client : Dormants < Potentiels < Fidèles < Champions
+        # PDF dit Ord/One-Hot → on choisit Ordinal car ordre logique prouvé
+        # (Dormants=100% churn, Champions=0% churn)
+        'RFMSegment'        : ['Dormants', 'Potentiels', 'Fidèles', 'Champions'],
     }
 
     for col, ordre in encodages_ordinaux.items():
@@ -180,73 +191,46 @@ def encoder_colonnes(df):
                 df[col], categories=ordre, ordered=True).codes
             print(f" {col} encodé (ordinal)")
 
-    # Encodage One-Hot (pas d'ordre)
+    # ── Encodage One-Hot (pas d'ordre → PDF page 3) ──
     colonnes_onehot = [
-        'RFMSegment', 'CustomerType', 'FavoriteSeason',
-        'Region', 'WeekendPreference', 'ProductDiversity',
-        'Gender', 'AccountStatus'
+        'CustomerType',      # One-Hot (PDF) → pas d'ordre entre profils
+        'FavoriteSeason',    # One-Hot (PDF) → pas d'ordre entre saisons
+        'Region',            # One-Hot (PDF) → pas d'ordre entre régions
+        'WeekendPreference', # One-Hot (PDF) → pas d'ordre
+        'ProductDiversity',  # One-Hot (PDF) → pas d'ordre
+        'Gender',            # One-Hot (PDF) → pas d'ordre
+        'AccountStatus',     # One-Hot (PDF) → pas d'ordre
     ]
+
     colonnes_onehot = [c for c in colonnes_onehot if c in df.columns]
     df = pd.get_dummies(df, columns=colonnes_onehot, drop_first=True)
     print(f" One-Hot appliqué sur : {colonnes_onehot}")
 
-    # Country → Target Encoding sera fait dans train_model.py
+    # ── Country → Target Encoding dans train_model.py ──
+    # Gardé tel quel → Target Encoding après split pour éviter leakage
     if 'Country' in df.columns:
-        df = df.drop(columns=['Country'])
-        print(" Country supprimé (Target Encoding dans train_model.py)")
+        print(" Country gardé → Target Encoding dans train_model.py après split")
 
     return df
-
-
-# ============================================================
-# FONCTION 8 : Normaliser
-# ============================================================
-def normaliser(df, sauvegarder=True):
-    """
-    Utilise utils.py pour détecter les colonnes à normaliser
-    puis applique StandardScaler
-    """
-    print("\n NORMALISATION")
-
-    # On ne normalise jamais la cible
-    colonnes_a_exclure = ['Churn']
-    colonnes_numeriques = df.select_dtypes(include='number').columns.tolist()
-    colonnes_a_normaliser = [c for c in colonnes_numeriques
-                             if c not in colonnes_a_exclure]
-
-    scaler = StandardScaler()
-    df[colonnes_a_normaliser] = scaler.fit_transform(df[colonnes_a_normaliser])
-
-    if sauvegarder:
-        os.makedirs('models', exist_ok=True)
-        joblib.dump(scaler, 'models/scaler.pkl')
-        print(" Scaler sauvegardé dans models/scaler.pkl")
-
-    print(f" {len(colonnes_a_normaliser)} colonnes normalisées")
-    return df, scaler
-
 
 # ============================================================
 # PIPELINE COMPLET
 # ============================================================
-def pipeline_complet(df, sauvegarder=True):
+def pipeline_complet(df):
     """Lance tout le preprocessing d'un coup"""
-    print("🚀 Démarrage du preprocessing...\n")
+    print(" Démarrage du preprocessing...\n")
 
     # utils.py détecte → preprocessing.py supprime/corrige
     df = supprimer_colonnes_inutiles(df)  # utils détecte les inutiles
     df = supprimer_redondantes(df)        # utils détecte les redondantes
     df = corriger_aberrantes(df)          # utils détecte les aberrantes
-    df = imputer_manquants(df)            # utils détecte les manquants
-    df = parser_dates(df)
-    df = traiter_ip(df)
+    df = feature_engineering(df)          # utils ne fait pas de feature engineering
     df = encoder_colonnes(df)
-    df, scaler = normaliser(df, sauvegarder)  # utils détecte les échelles
 
     print(f"\n Preprocessing terminé !")
     print(f"Shape final : {df.shape}")
 
-    return df, scaler
+    return df
 
 
 # ============================================================
@@ -256,7 +240,11 @@ if __name__ == "__main__":
     df = pd.read_csv(r'C:\Users\abdal\Desktop\projects\ML\ML_project\data\raw\retail_customers_COMPLETE CATEGORICAL.csv')
     print(" Données chargées !")
 
-    df_clean, scaler = pipeline_complet(df)
+    df_clean = pipeline_complet(df)
 
     os.makedirs('data/processed', exist_ok=True)
     df_clean.to_csv('data/processed/data_clean.csv', index=False)
+    print("\n Données sauvegardées dans data/processed/data_clean.csv")
+    print("  Colonnes avec NaN restants (imputés dans train_model.py) :")
+    manquants = df_clean.isnull().sum()
+    print(manquants[manquants > 0])

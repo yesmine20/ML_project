@@ -40,41 +40,6 @@ def analyser_manquants(df):
         print(resultat)
         return manquants.index.tolist()
 
-
-# FONCTION 3 : Valeurs aberrantes
-
-def analyser_aberrantes(df):
-    """Détecte les valeurs aberrantes avec describe() et boxplots"""
-    print("\n" + "=" * 50)
-    print("  STATISTIQUES (chercher min/max suspects)")
-    print("=" * 50)
-    print(df.describe().round(2))
-    
-    # Boxplots pour les colonnes numériques
-    numeriques = df.select_dtypes(include='number').columns.tolist()
-    # On exclut CustomerID car c'est juste un identifiant
-    numeriques = [c for c in numeriques if c != 'CustomerID']
-    
-    # print(f"\n Boxplots pour détecter les outliers...")
-    # fig, axes = plt.subplots(
-    #     nrows=(len(numeriques) // 4) + 1,
-    #     ncols=4,
-    #     figsize=(20, 40)
-    # )
-    # axes = axes.flatten()
-    
-    # for i, col in enumerate(numeriques):
-    #     df.boxplot(column=col, ax=axes[i])
-    #     axes[i].set_title(col, fontsize=8)
-    
-    # plt.tight_layout()
-    # plt.savefig('reports/boxplots_outliers.png')
-    # print("Boxplots sauvegardés dans reports/boxplots_outliers.png")
-    # plt.show()
-    return numeriques 
-
-
-
 # FONCTION 4 : Types des colonnes
 
 def analyser_types(df):
@@ -124,7 +89,7 @@ def analyser_uniques(df):
 def analyser_echelles(df):
     """Affiche les min/max pour voir les différences d'échelles"""
     print("\n" + "=" * 50)
-    print("📏 ÉCHELLES DES COLONNES NUMÉRIQUES")
+    print(" ÉCHELLES DES COLONNES NUMÉRIQUES")
     print("=" * 50)
     
     numeriques = df.select_dtypes(include='number')
@@ -195,7 +160,6 @@ def rapport_complet(df):
     analyser_redondantes(df)
     analyser_echelles(df)
     analyser_cible(df)
-    analyser_aberrantes(df)
 
 if __name__ == "__main__":
     df = pd.read_csv(r'C:\Users\abdal\Desktop\projects\ML\ML_project\data\raw\retail_customers_COMPLETE CATEGORICAL.csv')
