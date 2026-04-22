@@ -1,0 +1,62 @@
+# pour la regression ──────────────────────────────────────────────────────────────────────
+    # GRAPHIQUES DE DIAGNOSTIC
+    # ──────────────────────────────────────────────────────────────────────
+    
+    fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+    
+    # Graphique 1 : Échelle originale
+    ax1 = axes[0]
+    ax1.scatter(y_test_reg, y_pred_reg, alpha=0.3, s=15, color='#378ADD')
+    lim = [min(y_test_reg.min(), y_pred_reg.min()),
+           max(y_test_reg.max(), y_pred_reg.max())]
+    ax1.plot(lim, lim, 'r--', lw=1.5, label='Prédiction parfaite')
+    ax1.set_xlabel('MonetaryTotal Réel (€)')
+    ax1.set_ylabel('MonetaryTotal Prédit (€)')
+    ax1.set_title(f'XGBoost LOG — Réel vs Prédit (échelle originale)\n'
+                  f'MAE={mae:.0f}  RMSE={rmse:.0f}  R2={r2:.3f}  MAPE={mape_score:.1f}%')
+    ax1.legend()
+    ax1.grid(alpha=0.3)
+    
+    # Graphique 2 : Échelle logarithmique
+    ax2 = axes[1]
+    ax2.scatter(y_test_reg, y_pred_reg, alpha=0.3, s=15, color='#2ECC71')
+    ax2.plot(lim, lim, 'r--', lw=1.5, label='Prédiction parfaite')
+    ax2.set_xlabel('MonetaryTotal Réel (€)')
+    ax2.set_ylabel('MonetaryTotal Prédit (€)')
+    ax2.set_xscale('log')
+    ax2.set_yscale('log')
+    ax2.set_title(f'Échelle Logarithmique (qualité sur toute la plage)\n'
+                  f'RMSLE={rmsle_score:.3f}')
+    ax2.legend()
+    ax2.grid(alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig(os.path.join(PLOTS_DIR, 'xgb_reg_pred_vs_real_FIXED.png'), dpi=120)
+    plt.close()
+    
+    # Distribution des erreurs
+    plt.figure(figsize=(12, 5))
+    
+    plt.subplot(1, 2, 1)
+    erreurs = y_test_reg - y_pred_reg
+    plt.hist(erreurs, bins=50, color='skyblue', edgecolor='black', alpha=0.7)
+    plt.axvline(0, color='red', linestyle='--', linewidth=2, label='Erreur = 0')
+    plt.xlabel('Erreur de Prédiction (€)')
+    plt.ylabel('Fréquence')
+    plt.title(f'Distribution des Erreurs\nMoyenne={erreurs.mean():.1f}  Médiane={np.median(erreurs):.1f}')
+    plt.legend()
+    
+    plt.subplot(1, 2, 2)
+    erreurs_pct = (erreurs / (y_test_reg + 1)) * 100
+    plt.hist(erreurs_pct.clip(-100, 100), bins=50, color='lightcoral', edgecolor='black', alpha=0.7)
+    plt.axvline(0, color='red', linestyle='--', linewidth=2)
+    plt.xlabel('Erreur Relative (%)')
+    plt.ylabel('Fréquence')
+    plt.title(f'Distribution des Erreurs Relatives\nMédiane={np.median(erreurs_pct):.1f}%')
+    
+    plt.tight_layout()
+    plt.savefig(os.path.join(PLOTS_DIR, 'xgb_reg_errors_distribution.png'), dpi=120)
+    plt.close() 
+
+
+

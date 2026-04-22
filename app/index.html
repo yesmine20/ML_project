@@ -9,9 +9,6 @@
         @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
 
         :root {
-            /* --bg: #0f1117;
-            --surface: #1a1d27;
-            --surface2: #222638; */
             --border: #2e3248;
             --accent: #4f8ef7;
             --danger: #e24b4a;
@@ -32,7 +29,6 @@
         }
 
         body {
-            /* background: var(--bg); */
             color: var(--text);
             font-family: var(--sans);
             font-size: 14px;
@@ -113,7 +109,6 @@
             border-radius: 2px;
         }
 
-        /* ── Form ── */
         .form-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -165,7 +160,6 @@
             opacity: .65;
         }
 
-        /* Recency slider */
         .slider-row {
             display: flex;
             align-items: center;
@@ -184,7 +178,6 @@
             text-align: right;
         }
 
-        /* Info banner */
         .info-banner {
             background: rgba(79, 142, 247, .08);
             border: 1px solid rgba(79, 142, 247, .2);
@@ -224,7 +217,6 @@
             cursor: not-allowed;
         }
 
-        /* ── Results ── */
         #placeholder {
             color: var(--muted);
             font-size: 13px;
@@ -335,6 +327,46 @@
             color: #ff6b6a;
         }
 
+        /* ── Bloc recommandations marketing ── */
+        #r-marketing {
+            display: none;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 14px;
+            margin-top: 2px;
+        }
+
+        #r-marketing .mc-label {
+            margin-bottom: 10px;
+        }
+
+        #r-marketing-priorite {
+            font-family: var(--mono);
+            font-size: 11px;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 12px;
+            display: inline-block;
+            margin-bottom: 12px;
+        }
+
+        #r-marketing-actions {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
+
+        #r-marketing-actions li {
+            font-size: 12px;
+            color: var(--muted);
+            padding: 5px 0 5px 12px;
+            line-height: 1.4;
+        }
+
         .spinner {
             display: inline-block;
             width: 13px;
@@ -394,12 +426,23 @@
         <div class="panel">
             <div class="panel-title">Profil client</div>
 
-            <div class="info-banner">
+            <!-- <div class="info-banner">
                 <strong>8 champs suffisent</strong> — ils représentent ~56% de l'importance du modèle.
                 Les 44 autres features sont complétées automatiquement par les médianes du dataset d'entraînement.
-            </div>
+            </div> -->
 
             <div class="form-grid">
+                <div class="form-group">
+                    <label>CustomerTenureDays — Ancienneté</label>
+                    <input type="number" id="CustomerTenureDays" value="365" min="1" max="5000">
+                    <span class="hint">Jours depuis la création du compte</span>
+                </div>
+
+                <div class="form-group">
+                    <label>FirstPurchaseDaysAgo — 1er achat</label>
+                    <input type="number" id="FirstPurchaseDaysAgo" value="360" min="1" max="5000">
+                    <span class="hint">Jours depuis le tout premier achat</span>
+                </div>
 
                 <div class="form-group">
                     <label>Frequency — Nb commandes</label>
@@ -424,6 +467,7 @@
                     <input type="number" id="UniqueProducts" value="5" min="1">
                     <span class="hint">Nombre de produits distincts achetés</span>
                 </div>
+
 
                 <div class="form-group">
                     <label>PreferredMonth — Mois favori</label>
@@ -472,10 +516,10 @@
                     <span class="hint">Ancienneté du compte client</span>
                 </div>
 
-                <!-- Recency pour RFM uniquement (pas dans le modèle churn) -->
                 <div class="form-group full">
-                    <label>Recency — Jours depuis dernier achat <span style="color:var(--accent)">(pour segment RFM
-                            uniquement)</span></label>
+                    <label>Recency — Jours depuis dernier achat
+                        <span style="color:var(--accent)">(pour segment RFM uniquement)</span>
+                    </label>
                     <div class="slider-row">
                         <input type="range" id="Recency" min="0" max="400" value="50"
                             oninput="document.getElementById('recency-val').textContent=this.value+' j'">
@@ -502,6 +546,7 @@
             </div>
 
             <div id="result-panel">
+
                 <div class="gauge-wrap">
                     <div class="gauge-label">PROBABILITÉ DE CHURN</div>
                     <div class="gauge-value" id="g-val">—</div>
@@ -511,6 +556,7 @@
                     <div class="verdict" id="g-verdict">—</div>
                 </div>
 
+                <!-- 4 métriques principales -->
                 <div class="metrics">
                     <div class="mc">
                         <div class="mc-label">Décision</div>
@@ -526,9 +572,21 @@
                     </div>
                     <div class="mc">
                         <div class="mc-label">Features utilisées</div>
-                        <div class="mc-value" id="r-features">8 / 52</div>
+                        <div class="mc-value" id="r-features">— / —</div>
+                    </div>
+                    <div class="mc">
+                        <div class="mc-label">Valeur client estimée</div>
+                        <div class="mc-value" id="r-monetary" style="color:var(--accent)">—</div>
                     </div>
                 </div>
+
+                <!-- Recommandations marketing — APRÈS .metrics, PAS dedans -->
+                <div id="r-marketing">
+                    <div class="mc-label">Recommandations marketing</div>
+                    <div id="r-marketing-priorite"></div>
+                    <ul id="r-marketing-actions"></ul>
+                </div>
+
             </div>
         </div>
 
@@ -537,6 +595,14 @@
     <footer>Random Forest · Sans ACP (modèle final) · SMOTE · K-Means RFM — GI2 ML Project 2025-2026</footer>
 
     <script>
+        const COLOR_MAP = {
+            green: { bg: 'rgba(58,173,110,.15)', text: '#3aad6e' },
+            teal: { bg: 'rgba(28,114,147,.15)', text: '#1c7293' },
+            amber: { bg: 'rgba(232,155,47,.15)', text: '#e89b2f' },
+            red: { bg: 'rgba(226,75,74,.15)', text: '#e24b4a' },
+            gray: { bg: 'rgba(120,128,160,.15)', text: '#7880a0' },
+        };
+
         async function runPrediction() {
             const btn = document.getElementById('btn-predict');
             const err = document.getElementById('err');
@@ -554,6 +620,9 @@
                 FavoriteSeason: document.getElementById('FavoriteSeason').value,
                 RegYear: parseInt(document.getElementById('RegYear').value),
                 Recency: parseFloat(document.getElementById('Recency').value),
+                // ── Ajouts ──
+                CustomerTenureDays: parseFloat(document.getElementById('CustomerTenureDays').value),
+                FirstPurchaseDaysAgo: parseFloat(document.getElementById('FirstPurchaseDaysAgo').value),
             };
 
             try {
@@ -562,27 +631,39 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-                const data = await resp.json();
-                if (!data.success) throw new Error(data.error);
 
+                // On lit UNE SEULE FOIS — en texte, puis on parse manuellement
+                const raw = await resp.text();
+
+                let data;
+                try {
+                    data = JSON.parse(raw);
+                } catch (parseErr) {
+                    throw new Error('Réponse non-JSON : ' + raw.substring(0, 300));
+                }
+
+                if (!data.success) throw new Error(data.error || 'Erreur inconnue');
+
+                // ── Affichage ──────────────────────────────────────────
                 document.getElementById('placeholder').style.display = 'none';
                 document.getElementById('result-panel').classList.add('visible');
 
                 const prob = data.churn_probability;
                 document.getElementById('g-val').textContent = prob.toFixed(1) + '%';
 
-                let color;
-                if (prob >= 75) color = '#ff6b6a';
-                else if (prob >= 50) color = '#e24b4a';
-                else if (prob >= 25) color = '#e89b2f';
-                else color = '#3aad6e';
+                let barColor;
+                if (prob >= 75) barColor = '#ff6b6a';
+                else if (prob >= 50) barColor = '#e24b4a';
+                else if (prob >= 25) barColor = '#e89b2f';
+                else barColor = '#3aad6e';
 
-                document.getElementById('g-val').style.color = color;
+                document.getElementById('g-val').style.color = barColor;
                 document.getElementById('g-fill').style.width = prob + '%';
-                document.getElementById('g-fill').style.background = color;
+                document.getElementById('g-fill').style.background = barColor;
 
-                const riskKey = data.risk_segment.toLowerCase()
-                    .replace('é', 'e').replace('è', 'e').replace('ê', 'e');
+                const riskKey = (data.risk_segment || '')
+                    .toLowerCase()
+                    .replace(/[éèê]/g, 'e');
                 const verdict = document.getElementById('g-verdict');
                 verdict.textContent = data.risk_segment;
                 verdict.className = 'verdict r-' + riskKey;
@@ -591,8 +672,44 @@
                 dec.textContent = data.churn_predicted === 1 ? 'Churné' : 'Fidèle';
                 dec.style.color = data.churn_predicted === 1 ? '#e24b4a' : '#3aad6e';
 
-                document.getElementById('r-risk').textContent = data.risk_segment;
-                document.getElementById('r-rfm').textContent = data.rfm_segment;
+                document.getElementById('r-risk').textContent = data.risk_segment || '—';
+                document.getElementById('r-rfm').textContent = data.rfm_segment || '—';
+                document.getElementById('r-features').textContent =
+                    (data.features_used ?? '—') + ' / ' + (data.features_total ?? '—');
+
+                const monetary = data.monetary_predicted;
+                document.getElementById('r-monetary').textContent =
+                    monetary !== null && monetary !== undefined
+                        ? monetary.toLocaleString('fr-FR', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 })
+                        : '—';
+
+                // ── Recommandations marketing ──────────────────────────
+                // La clé Flask s'appelle "marketing_reco" (confirmé par la console)
+                const mkt = data.marketing_reco || data.marketing;
+                const wrap = document.getElementById('r-marketing');
+
+                if (mkt) {
+                    const c = COLOR_MAP[mkt.couleur] || COLOR_MAP.gray;
+                    const prio = document.getElementById('r-marketing-priorite');
+                    const list = document.getElementById('r-marketing-actions');
+
+                    prio.textContent = mkt.priorite;
+                    prio.style.background = c.bg;
+                    prio.style.color = c.text;
+                    prio.style.border = '1px solid ' + c.text;
+
+                    list.innerHTML = '';
+                    (mkt.actions || []).forEach(action => {
+                        const li = document.createElement('li');
+                        li.style.borderLeft = '2px solid ' + c.text;
+                        li.textContent = action;
+                        list.appendChild(li);
+                    });
+
+                    wrap.style.display = 'block';
+                } else {
+                    wrap.style.display = 'none';
+                }
 
             } catch (e) {
                 err.textContent = 'Erreur : ' + e.message;

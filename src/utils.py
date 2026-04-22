@@ -79,9 +79,9 @@ def analyser_uniques(df):
         print(" Pas de colonne complètement inutile")
     
     # Colonnes avec trop de valeurs uniques (ex: IP, ID)
-    print(f"\n  Colonnes avec beaucoup de valeurs uniques :")
-    suspects = uniques[uniques > len(df) * 0.9]
-    print(suspects)
+    # print(f"\n  Colonnes avec beaucoup de valeurs uniques :")
+    # suspects = uniques[uniques > len(df) * 0.9]
+    # print(suspects)
     return inutiles.index.tolist() 
 
 # FONCTION 6 : Échelles
