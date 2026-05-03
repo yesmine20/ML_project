@@ -186,7 +186,7 @@ def form_to_features(form: dict) -> dict:
     d['PreferredMonth']          = float(form.get('PreferredMonth', 6))
     # d['CustomerTenureDays']      = float(form.get('CustomerTenureDays', 365))
     d['FirstPurchaseDaysAgo']    = float(form.get('FirstPurchaseDaysAgo', 360))
-    d['MonetartyTotal']          = float(form.get('MonetartyTotal', 360))
+    d['MonetaryTotal']           = float(form.get('MonetaryTotal', 360))  # FIX: typo corrigée
 
 
     # SUPPRIMÉES : Recency (clustering only), RFMSegment (droppée), 
@@ -224,8 +224,11 @@ def form_to_features(form: dict) -> dict:
         d['RegYear'] = float(reg_year)
 
     # ── FavoriteSeason (one-hot) ──────────────────────────────
+    # Automne est la catégorie de référence (drop_first=True dans get_dummies)
+    # Donc SEASON_COLS n'a que 3 colonnes (Hiver, Printemps, Été)
+    # Pour Automne : tous les SEASON_COLS = 0 (c'est correct)
     season_raw = form.get('FavoriteSeason', 'Automne')
-    season_idx = SEASON_MAP.get(str(season_raw), 3)
+    season_idx = SEASON_MAP.get(str(season_raw), -1)  # -1 = Automne (référence)
     for i, col in enumerate(SEASON_COLS):
         d[col] = 1.0 if i == season_idx else 0.0
 

@@ -162,7 +162,10 @@ def rapport_complet(df):
     analyser_cible(df)
 
 if __name__ == "__main__":
-    df = pd.read_csv(r'C:\Users\abdal\Desktop\projects\ML\ML_project\data\raw\retail_customers_COMPLETE CATEGORICAL.csv')
+    import os
+    _BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    _raw_path = os.path.join(_BASE_DIR, 'data', 'raw', 'retail_customers_COMPLETE CATEGORICAL.csv')
+    df = pd.read_csv(_raw_path)
     print("Données chargées !")
     rapport_complet(df)
     

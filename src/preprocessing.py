@@ -3,10 +3,11 @@ import pandas as pd
 import numpy as np
 import os
 import sys
+import ipaddress
 import seaborn as sns
-sys.path.append(r'C:\Users\abdal\Desktop\projects\ML\ML_project\src')
+# Ajout du répertoire src au path (chemin relatif, portable sur tous les PC)
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from sklearn.feature_selection import VarianceThreshold
-import pandas as pd
 
 
 # FONCTION 1 : Supprimer les colonnes inutiles (Variance nulle et quasi-nulle)
@@ -173,11 +174,15 @@ def feature_engineering(df):
         df['IP_PremierOctet'] = df['LastLoginIP'].apply(
             lambda x: int(str(x).split('.')[0]) if pd.notna(x) else 0
         )
-        # IP privée vs publique (PDF : détecter si IP privée/publique)
-        df['IP_Privee'] = df['LastLoginIP'].apply(
-            lambda x: 1 if str(x).startswith(('10.', '192.168.', '172.'))
-            else 0 if pd.notna(x) else 0
-        )
+        # IP privée vs publique — vérification correcte selon RFC 1918
+        def _is_private_ip(x):
+            if pd.isna(x):
+                return 0
+            try:
+                return int(ipaddress.ip_address(str(x)).is_private)
+            except ValueError:
+                return 0
+        df['IP_Privee'] = df['LastLoginIP'].apply(_is_private_ip)
         df = df.drop(columns=['LastLoginIP'])
         print(" LastLoginIP → IP_PremierOctet, IP_Privee")
 
@@ -267,7 +272,7 @@ def encoder_colonnes(df):
     - Ordinal  : quand il y a un ordre logique
     - One-Hot  : quand il n'y a pas d'ordre
     - Country  : Target Encoding dans train_model.py après split (PAS ICI)
-$    """
+    """
     print("\n ENCODAGE DES COLONNES TEXTE")
 
     # ── Encodage Ordinal  ──
@@ -347,10 +352,13 @@ def pipeline_complet(df):
 
 # TEST
 if __name__ == "__main__":
-    df = pd.read_csv(r'C:\Users\abdal\Desktop\projects\ML\ML_project\data\raw\retail_customers_COMPLETE CATEGORICAL.csv')
+    _BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    _raw_path = os.path.join(_BASE_DIR, 'data', 'raw', 'retail_customers_COMPLETE CATEGORICAL.csv')
+    df = pd.read_csv(_raw_path)
     print(" Données chargées !")
 
     df_clean = pipeline_complet(df)
 
-    os.makedirs('data/processed', exist_ok=True)
-    df_clean.to_csv('data/processed/data_clean.csv', index=False)
+    _out_dir = os.path.join(_BASE_DIR, 'data', 'processed')
+    os.makedirs(_out_dir, exist_ok=True)
+    df_clean.to_csv(os.path.join(_out_dir, 'data_clean.csv'), index=False)
